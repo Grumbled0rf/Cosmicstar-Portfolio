@@ -14,28 +14,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Digital Ocean Droplet
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /opt/cosmicstar
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
 
-            # Pull latest code
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'ENDSSH'
+            cd /opt/cosmicstar
             git fetch origin main
             git reset --hard origin/main
-
-            # Rebuild and restart app
             docker compose build app
             docker compose up -d --no-deps app
-
-            # Cleanup old images
             docker image prune -f
-
-            # Health check
             sleep 15
-            curl -f http://localhost:3002/api/health || exit 1
-
+            curl -f http://localhost:3002/api/health
             echo "Deployment successful!"
+          ENDSSH
