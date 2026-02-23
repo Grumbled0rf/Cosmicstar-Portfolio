@@ -1,0 +1,34 @@
+{
+  "name": "cosmicstar-cms",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "docker:start": "./scripts/start.sh",
+    "docker:stop": "./scripts/stop.sh",
+    "docker:reset": "./scripts/reset.sh",
+    "docker:build": "docker-compose build",
+    "docker:logs": "docker-compose logs -f",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "dependencies": {
+    "next": "14.2.18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/ssr": "^0.1.0",
+    "react-hook-form": "^7.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "typescript": "^5"
+  }
+}
