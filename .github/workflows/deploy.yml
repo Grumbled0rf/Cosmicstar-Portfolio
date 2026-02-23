@@ -15,18 +15,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /opt/cosmicstar
-            git fetch origin main
-            git reset --hard origin/main
-            docker compose build app
-            docker compose up -d --no-deps app
-            docker image prune -f
-            sleep 15
-            curl -f http://localhost:3002/api/health
-            echo "Deployment successful!"
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          printf "%s" "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $HOST >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $USER@$HOST 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
