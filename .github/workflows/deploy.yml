@@ -24,11 +24,31 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -t ed25519 "$HOST" >> ~/.ssh/known_hosts || true
           ssh-keyscan -t rsa "$HOST" >> ~/.ssh/known_hosts || true
-          echo "SSH setup complete"
 
-      - name: Deploy
+      - name: Test SSH
         env:
           HOST: ${{ secrets.DROPLET_HOST }}
           USER: ${{ secrets.DROPLET_USER }}
         run: |
-          ssh -o StrictHostKeyChecking=no "$USER@$HOST" 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" 'echo "SSH connection successful"'
+
+      - name: Pull latest code
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          ssh "$USER@$HOST" 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main'
+
+      - name: Build and deploy
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          ssh "$USER@$HOST" 'cd /opt/cosmicstar && docker compose build app && docker compose up -d --no-deps app'
+
+      - name: Health check
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          ssh "$USER@$HOST" 'sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
