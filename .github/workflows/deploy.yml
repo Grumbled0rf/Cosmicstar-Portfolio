@@ -14,13 +14,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug secrets
+        run: |
+          echo "HOST length: ${#HOST}"
+          echo "USER length: ${#USER}"
+          echo "KEY length: ${#KEY}"
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+          KEY: ${{ secrets.SSH_KEY_BASE64 }}
+
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          cat ~/.ssh/id_ed25519 | head -1
           ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
+          ssh -v -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} 'echo "Connected!" && cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && sleep 15 && curl -f http://localhost:3002/api/health'
