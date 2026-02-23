@@ -14,16 +14,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
         with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: unnecessary
-          if_key_exists: replace
-
-      - name: Add Known Hosts
-        run: ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to Server
-        run: |
-          ssh ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
+          script: |
+            cd /opt/cosmicstar
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose build app
+            docker compose up -d --no-deps app
+            docker image prune -f
+            sleep 15
+            curl -f http://localhost:3002/api/health
+            echo "Deployment successful!"
