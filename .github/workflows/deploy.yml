@@ -14,14 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install SSH key and Deploy
+      - name: Setup SSH Key
         env:
           SSH_KEY: ${{ secrets.SSH_KEY_BASE64 }}
-          HOST: ${{ secrets.DROPLET_HOST }}
-          USER: ${{ secrets.DROPLET_USER }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" | base64 --decode > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -t ed25519 "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=no "$USER@$HOST" 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
+          echo "Key file created"
+          ls -la ~/.ssh/
+
+      - name: Add known hosts
+        run: |
+          ssh-keyscan -t ed25519 ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          echo "Known hosts added"
+
+      - name: Test SSH connection
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} 'echo "SSH OK"'
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} 'cd /opt/cosmicstar && git fetch origin main && git reset --hard origin/main && docker compose build app && docker compose up -d --no-deps app && docker image prune -f && sleep 15 && curl -f http://localhost:3002/api/health && echo "Deployment successful!"'
